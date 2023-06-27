@@ -481,28 +481,34 @@ impl SearchResult {
     /// comprehensive, it only supports `CFString`, `CFDate`, and `CFData`
     /// value types.
     #[must_use]
-    pub fn simplify_dict(&self) -> Option<HashMap<String, String>> {
+   pub fn simplify_dict(&self) -> Option<HashMap<String, Vec<u8>>> {
         match *self {
             Self::Dict(ref d) => unsafe {
-                let mut retmap = HashMap::new();
+                let mut retmap: HashMap<String, Vec<u8>> = HashMap::new();
                 let (keys, values) = d.get_keys_and_values();
                 for (k, v) in keys.iter().zip(values.iter()) {
                     let keycfstr = CFString::wrap_under_get_rule((*k).cast());
-                    let val: String = match CFGetTypeID(*v) {
+                    let val: Vec<u8> = match CFGetTypeID(*v) {
                         cfstring if cfstring == CFString::type_id() => {
-                            format!("{}", CFString::wrap_under_get_rule((*v).cast()))
+                          let string=  format!("{}", CFString::wrap_under_get_rule((*v).cast()));
+                          string.into_bytes()
                         }
                         cfdata if cfdata == CFData::type_id() => {
                             let buf = CFData::wrap_under_get_rule((*v).cast());
                             let mut vec = Vec::new();
                             vec.extend_from_slice(buf.bytes());
-                            format!("{}", String::from_utf8_lossy(&vec))
+                            if vec.as_slice().len() == 32 {                
+                               vec
+                            }else{
+                                vec
+                            }
+                           
                         }
-                        cfdate if cfdate == CFDate::type_id() => format!(
-                            "{}",
-                            CFString::wrap_under_create_rule(CFCopyDescription(*v))
-                        ),
-                        _ => String::from("unknown"),
+                        cfdate if cfdate == CFDate::type_id() =>{
+                         let string=format!("{}",CFString::wrap_under_create_rule(CFCopyDescription(*v)));
+                            string.into_bytes()
+                        }
+                        _ => Vec::new(),
                     };
                     retmap.insert(format!("{}", keycfstr), val);
                 }
