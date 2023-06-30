@@ -532,8 +532,8 @@ pub struct ItemAddOptions {
     pub label: Option<String>,
     /// Optional keychain location.
     pub location: Option<Location>,
-     /// Optional Access Control
-     pub access_control: Option<SecAccessControl>,
+    /// Optional Access Control
+    pub access_control: Option<SecAccessControl>,
 }
 
 impl ItemAddOptions {
