@@ -74,4 +74,5 @@ extern "C" {
     pub static kSecAttrAccount: CFStringRef;
     pub static kSecValueData: CFStringRef;
     pub static kSecValueRef: CFStringRef;
+    pub static kSecAttrAccessibleWhenUnlockedThisDeviceOnly: CFStringRef;
 }

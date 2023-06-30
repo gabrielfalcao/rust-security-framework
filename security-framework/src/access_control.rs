@@ -3,8 +3,10 @@
 use std::ptr::{self, null};
 
 use core_foundation::base::{TCFType, CFOptionFlags, kCFAllocatorDefault};
+use core_foundation_sys::base::TCFTypeRef;
 use security_framework_sys::access_control::{SecAccessControlGetTypeID, SecAccessControlCreateWithFlags};
 use security_framework_sys::base::{SecAccessControlRef, errSecParam};
+use security_framework_sys::item::kSecAttrAccessibleWhenUnlockedThisDeviceOnly;
 use crate::base::{Error, Result};
 
 declare_TCFType! {
@@ -26,7 +28,7 @@ impl SecAccessControl {
         unsafe {
             let access_control = SecAccessControlCreateWithFlags(
                 kCFAllocatorDefault,
-                null(),
+                unsafe{kSecAttrAccessibleWhenUnlockedThisDeviceOnly}.as_void_ptr(),
                 flags,
                 ptr::null_mut(),
             );
