@@ -16,6 +16,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::ptr;
 
+use crate::access_control::SecAccessControl;
 use crate::base::Result;
 use crate::certificate::SecCertificate;
 use crate::cvt;
@@ -531,12 +532,14 @@ pub struct ItemAddOptions {
     pub label: Option<String>,
     /// Optional keychain location.
     pub location: Option<Location>,
+     /// Optional Access Control
+     pub access_control: Option<SecAccessControl>,
 }
 
 impl ItemAddOptions {
     /// Specifies the item to add.
     #[must_use] pub fn new(value: ItemAddValue) -> Self {
-        Self{ value, label: None, location: None }
+        Self{ value, label: None, location: None, access_control: None }
     }
     /// Specifies the `kSecAttrLabel` attribute.
     pub fn set_label(&mut self, label: impl Into<String>) -> &mut Self {
@@ -548,6 +551,13 @@ impl ItemAddOptions {
         self.location = Some(location);
         self
     }
+
+     /// Specifies the `kSecAttrAccessControl` attribute.
+     pub fn set_access_control(&mut self, access_control: SecAccessControl) -> &mut Self {
+        self.access_control = Some(access_control);
+        self
+    }
+
     /// Populates a `CFDictionary` to be passed to
     pub fn to_dictionary(&self) -> CFDictionary {
         let mut dict = CFMutableDictionary::from_CFType_pairs(&[]);
@@ -582,6 +592,13 @@ impl ItemAddOptions {
                     dict.add(&unsafe { kSecUseKeychain }.to_void(), &keychain.to_void());
                 },
             }
+        }
+
+        if let Some(access_control) = &self.access_control {
+            dict.add(
+                &unsafe { kSecAttrAccessControl }.to_void(),
+                &access_control.to_void(),
+            );
         }
 
         let label = self.label.as_deref().map(CFString::from);
