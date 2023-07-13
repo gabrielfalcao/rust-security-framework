@@ -9,7 +9,7 @@ use crate::{cvt, Error};
 use core_foundation::base::TCFType;
 use core_foundation::boolean::CFBoolean;
 use core_foundation::data::CFData;
-use core_foundation::dictionary::CFDictionary;
+use core_foundation::dictionary::{CFDictionary,CFMutableDictionary};
 use core_foundation::string::CFString;
 use core_foundation_sys::base::{CFGetTypeID, CFRelease, CFTypeRef};
 use core_foundation_sys::data::CFDataRef;
@@ -29,12 +29,24 @@ pub fn set_generic_password(service: &str, account: &str, password: &[u8]) -> Re
 
 /// Get the generic password for the given service and account.  If no matching
 /// keychain entry exists, fails with error code `errSecItemNotFound`.
-pub fn get_generic_password(service: &str, account: &str) -> Result<Vec<u8>> {
+pub fn get_generic_password(service: &str, account: &str, biometry : bool) -> Result<Vec<u8>> {
     let mut options = PasswordOptions::new_generic_password(service, account);
     options.query.push((
         unsafe { CFString::wrap_under_get_rule(kSecReturnData) },
         CFBoolean::from(true).into_CFType(),
     ));
+    if biometry {
+        options.set_access_control_options(
+            crate::passwords_options::AccessControlOptions::BIOMETRY_ANY.union(
+                crate::passwords_options::AccessControlOptions::APPLICATION_PASSWORD,
+            ));     
+    }else {
+        options.set_access_control_options(
+            crate::passwords_options::AccessControlOptions::APPLICATION_PASSWORD,
+        );
+    }
+    
+
     let params = CFDictionary::from_CFType_pairs(&options.query);
     let mut ret: CFTypeRef = std::ptr::null();
     cvt(unsafe { SecItemCopyMatching(params.as_concrete_TypeRef(), &mut ret) })?;
@@ -128,23 +140,29 @@ pub fn delete_internet_password(
     cvt(unsafe { SecItemDelete(params.as_concrete_TypeRef()) })
 }
 
-// This starts by trying to create the password with the given query params.
-// If the creation attempt reveals that one exists, its password is updated.
-fn set_password_internal(options: &mut PasswordOptions, password: &[u8]) -> Result<()> {
+/// This starts by trying to create the password with the given query params.
+/// If the creation attempt reveals that one exists, its password is updated.
+pub fn set_password_internal(options: &mut PasswordOptions, password: &[u8]) -> Result<()> {
     let query_len = options.query.len();
     options.query.push((
         unsafe { CFString::wrap_under_get_rule(kSecValueData) },
         CFData::from_buffer(password).into_CFType(),
     ));
-
+    println!("dic1");
     let params = CFDictionary::from_CFType_pairs(&options.query);
+     
+    print!("params: {:?}", params);
+    println!("dic2");
     let mut ret = std::ptr::null();
     let status = unsafe { SecItemAdd(params.as_concrete_TypeRef(), &mut ret) };
+    println!("dic3");
     if status == errSecDuplicateItem {
+        println!("Updating password");
         let params = CFDictionary::from_CFType_pairs(&options.query[0..query_len]);
         let update = CFDictionary::from_CFType_pairs(&options.query[query_len..]);
         cvt(unsafe { SecItemUpdate(params.as_concrete_TypeRef(), update.as_concrete_TypeRef()) })
     } else {
+        print!("ERROR: {}", status);
         cvt(status)
     }
 }
@@ -186,7 +204,7 @@ mod test {
             Err(err) if err.code() == errSecItemNotFound => (),
             Err(err) => panic!("missing_generic: delete failed with status: {}", err.code()),
         };
-        let result = get_generic_password(name, name);
+        let result = get_generic_password(name, name,true);
         match result {
             Ok(bytes) => panic!("missing_generic: get returned {:?}", bytes),
             Err(err) if err.code() == errSecItemNotFound => (),
@@ -204,7 +222,7 @@ mod test {
     fn roundtrip_generic() {
         let name = "roundtrip_generic";
         set_generic_password(name, name, name.as_bytes()).expect("set_generic_password");
-        let pass = get_generic_password(name, name).expect("get_generic_password");
+        let pass = get_generic_password(name, name,true).expect("get_generic_password");
         assert_eq!(name.as_bytes(), pass);
         delete_generic_password(name, name).expect("delete_generic_password")
     }
@@ -215,7 +233,7 @@ mod test {
         set_generic_password(name, name, name.as_bytes()).expect("set_generic_password");
         let alternate = "update_generic_alternate";
         set_generic_password(name, name, alternate.as_bytes()).expect("set_generic_password");
-        let pass = get_generic_password(name, name).expect("get_generic_password");
+        let pass = get_generic_password(name, name,true).expect("get_generic_password");
         assert_eq!(pass, alternate.as_bytes());
         delete_generic_password(name, name).expect("delete_generic_password")
     }

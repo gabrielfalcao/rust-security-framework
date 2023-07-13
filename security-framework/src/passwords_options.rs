@@ -1,13 +1,16 @@
 //! Support for password options, to be used with the passwords module
 
-use core_foundation::{string::CFString, base::{CFType, TCFType, CFOptionFlags}, number::CFNumber};
-use security_framework_sys::{keychain::{SecProtocolType, SecAuthenticationType}, access_control::*};
+use core_foundation::{string::CFString, base::{CFType, TCFType, CFOptionFlags}, number::CFNumber, boolean::CFBoolean};
+use core_foundation_sys::base::CFTypeRef;
+use security_framework_sys::{keychain::{SecProtocolType, SecAuthenticationType}, access_control::*, item::{kSecAttrLabel}};
 use security_framework_sys::item::{
     kSecAttrAccessControl, kSecAttrAccount, kSecAttrAuthenticationType, kSecAttrPath, kSecAttrPort, kSecAttrProtocol,
     kSecAttrSecurityDomain, kSecAttrServer, kSecAttrService, kSecClass, kSecClassGenericPassword,
-    kSecClassInternetPassword,
+    kSecClassInternetPassword,kSecUseDataProtectionKeychain
 };
 use crate::access_control::SecAccessControl;
+
+
 
 /// `PasswordOptions` constructor
 pub struct PasswordOptions {
@@ -20,10 +23,10 @@ bitflags::bitflags! {
     pub struct AccessControlOptions: CFOptionFlags {
         /** Constraint to access an item with either biometry or passcode. */
         const USER_PRESENCE = kSecAccessControlUserPresence;
-        #[cfg(feature = "OSX_10_13")]
+       
         /** Constraint to access an item with Touch ID for any enrolled fingers, or Face ID. */
         const BIOMETRY_ANY = kSecAccessControlBiometryAny;
-        #[cfg(feature = "OSX_10_13")]
+       
         /** Constraint to access an item with Touch ID for currently enrolled fingers, or from Face ID with the currently enrolled user. */
         const BIOMETRY_CURRENT_SET = kSecAccessControlBiometryCurrentSet;
         /** Constraint to access an item with a passcode. */
@@ -52,6 +55,7 @@ impl PasswordOptions {
                 unsafe { CFString::wrap_under_get_rule(kSecClass) },
                 unsafe { CFString::wrap_under_get_rule(kSecClassGenericPassword).into_CFType() },
             ),
+            
             (
                 unsafe { CFString::wrap_under_get_rule(kSecAttrService) },
                 CFString::from(service).into_CFType(),
@@ -60,6 +64,24 @@ impl PasswordOptions {
                 unsafe { CFString::wrap_under_get_rule(kSecAttrAccount) },
                 CFString::from(account).into_CFType(),
             ),
+            /* 
+            (
+                unsafe { CFString::wrap_under_get_rule(kSecUseDataProtectionKeychain) },
+                CFBoolean::true_value().into_CFType(),
+            ),
+            */
+            (
+                unsafe {CFString::wrap_under_get_rule(kSecAttrLabel)},
+                CFString::from("Avail").into_CFType(),
+            ),
+         
+            /* 
+            (
+                unsafe {CFString::wrap_under_get_rule(kSecAttrAccessGroup)},
+                CFString::from("Zack Xuereb (Personal Team)").into_CFType(),   
+            )
+         */
+
         ];
         Self { query }
     }
@@ -119,11 +141,22 @@ impl PasswordOptions {
 
     /// Add access control to the password
     pub fn set_access_control_options(&mut self, options: AccessControlOptions) {
+       
+      
         self.query.push((
             unsafe { CFString::wrap_under_get_rule(kSecAttrAccessControl) },
             SecAccessControl::create_with_flags(options.bits())
                 .unwrap()
-                .into_CFType(),
+                .into_CFType(), 
         ))
     }
+    //add authentication context
+ /* 
+    pub fn set_context(&mut self, context: CFTypeRef){
+        
+        self.query.push((
+            unsafe { CFString::wrap_under_get_rule(kSecUseAuthenticationContext) },
+            context,
+        ))
+    }*/
 }

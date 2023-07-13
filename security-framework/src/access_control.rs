@@ -28,7 +28,7 @@ impl SecAccessControl {
         unsafe {
             let access_control = SecAccessControlCreateWithFlags(
                 kCFAllocatorDefault,
-                unsafe{kSecAttrAccessibleWhenUnlockedThisDeviceOnly}.as_void_ptr(),
+                kSecAttrAccessibleWhenUnlockedThisDeviceOnly.as_void_ptr(),
                 flags,
                 ptr::null_mut(),
             );
@@ -40,3 +40,4 @@ impl SecAccessControl {
         }
     }
 }
+

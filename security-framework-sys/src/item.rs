@@ -32,7 +32,7 @@ extern "C" {
     pub static kSecAttrKeyClassSymmetric: CFStringRef;
 
     pub static kSecUseKeychain: CFStringRef;
-    #[cfg(any(feature = "OSX_10_15", target_os = "ios"))]
+ 
     pub static kSecUseDataProtectionKeychain: CFStringRef;
     #[cfg(any(feature = "OSX_10_12", target_os = "ios"))]
     pub static kSecAttrTokenID: CFStringRef;
@@ -75,4 +75,10 @@ extern "C" {
     pub static kSecValueData: CFStringRef;
     pub static kSecValueRef: CFStringRef;
     pub static kSecAttrAccessibleWhenUnlockedThisDeviceOnly: CFStringRef;
+    pub static kSecUseAuthenticationContext: CFStringRef;
+    pub static kSecUseAuthenticationUI: CFStringRef;
+    pub static kSecUseAuthenticationUISkip: CFStringRef;
+    pub static kSecUseOperationPrompt: CFStringRef;
+    pub static kSecAttrAccessible: CFStringRef;
+
 }

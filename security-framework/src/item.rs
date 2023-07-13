@@ -25,6 +25,7 @@ use crate::key::SecKey;
 #[cfg(target_os = "macos")]
 use crate::os::macos::keychain::SecKeychain;
 
+
 /// Specifies the type of items to search for.
 #[derive(Debug, Copy, Clone)]
 pub struct ItemClass(CFStringRef);
@@ -144,6 +145,9 @@ pub struct ItemSearchOptions {
     access_group: Option<CFString>,
     pub_key_hash: Option<CFData>,
     app_label: Option<CFData>,
+    biometry: Option<SecAccessControl>,
+    prompt: Option<CFString>,
+   
 }
 
 #[cfg(target_os = "macos")]
@@ -262,6 +266,23 @@ impl ItemSearchOptions {
         self
     }
 
+    /// Add biometric access control to search
+    #[inline(always)]
+    pub fn biometry(&mut self, access_control: SecAccessControl) -> &mut Self {
+        self.biometry = Some(access_control);
+        self
+    }
+
+    /// Add prompt to biometric access control
+    /// Only available on macOS 10.15+
+    #[inline(always)]
+    pub fn prompt(&mut self, prompt: &str) -> &mut Self {
+        self.prompt = Some(CFString::new(prompt));
+        self
+    }
+
+ 
+
     /// Search for objects.
     pub fn search(&self) -> Result<Vec<SearchResult>> {
         unsafe {
@@ -351,6 +372,22 @@ impl ItemSearchOptions {
                     app_label.as_CFType(),
                 ));
             }
+
+            if let Some(ref biometry) = self.biometry {
+                params.push((
+                    CFString::wrap_under_get_rule(kSecAttrAccessControl),
+                    biometry.as_CFType(),
+                ));
+            }
+
+            if let Some(ref prompt) = self.prompt {
+                params.push((
+                    CFString::wrap_under_get_rule(kSecUseOperationPrompt),
+                    prompt.as_CFType(),
+                ));
+            }
+
+        
 
             let params = CFDictionary::from_CFType_pairs(&params);
 
@@ -482,34 +519,32 @@ impl SearchResult {
     /// comprehensive, it only supports `CFString`, `CFDate`, and `CFData`
     /// value types.
     #[must_use]
-   pub fn simplify_dict(&self) -> Option<HashMap<String, Vec<u8>>> {
+    pub fn simplify_dict(&self) -> Option<HashMap<String, String>> {
         match *self {
             Self::Dict(ref d) => unsafe {
-                let mut retmap: HashMap<String, Vec<u8>> = HashMap::new();
+                let mut retmap = HashMap::new();
                 let (keys, values) = d.get_keys_and_values();
                 for (k, v) in keys.iter().zip(values.iter()) {
                     let keycfstr = CFString::wrap_under_get_rule((*k).cast());
-                    let val: Vec<u8> = match CFGetTypeID(*v) {
+                    let val: String = match CFGetTypeID(*v) {
                         cfstring if cfstring == CFString::type_id() => {
-                          let string=  format!("{}", CFString::wrap_under_get_rule((*v).cast()));
-                          string.into_bytes()
+                            format!("{}", CFString::wrap_under_get_rule((*v).cast()))
                         }
                         cfdata if cfdata == CFData::type_id() => {
                             let buf = CFData::wrap_under_get_rule((*v).cast());
                             let mut vec = Vec::new();
                             vec.extend_from_slice(buf.bytes());
-                            if vec.as_slice().len() == 32 {                
-                               vec
-                            }else{
-                                vec
-                            }
-                           
+                            format!("{}", String::from_utf8_lossy(&vec))
                         }
-                        cfdate if cfdate == CFDate::type_id() =>{
-                         let string=format!("{}",CFString::wrap_under_create_rule(CFCopyDescription(*v)));
-                            string.into_bytes()
-                        }
-                        _ => Vec::new(),
+                        cfdate if cfdate == CFDate::type_id() => format!(
+                            "{}",
+                            CFString::wrap_under_create_rule(CFCopyDescription(*v))
+                        ),
+
+                        _ => format!(
+                            "{}",
+                            CFString::wrap_under_create_rule(CFCopyDescription(*v))
+                        ),
                     };
                     retmap.insert(format!("{}", keycfstr), val);
                 }
@@ -605,7 +640,13 @@ impl ItemAddOptions {
         if let Some(label) = &label {
             dict.add(&unsafe { kSecAttrLabel }.to_void(), &label.to_void());
         }
+        /* 
+        let service = CFString::from("com.avail");
+        dict.add(&unsafe { kSecAttrService }.to_void(), &service.to_void());
 
+        let account = CFString::from("avail-user");
+        dict.add(&unsafe { kSecAttrAccount }.to_void(), &account.to_void());
+*/
         dict.to_immutable()
     }
 }
