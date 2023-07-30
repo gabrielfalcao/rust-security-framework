@@ -147,6 +147,7 @@ pub struct ItemSearchOptions {
     app_label: Option<CFData>,
     biometry: Option<SecAccessControl>,
     prompt: Option<CFString>,
+    context: Option<CFType>,
    
 }
 
@@ -281,6 +282,13 @@ impl ItemSearchOptions {
         self
     }
 
+    //add context to search
+    #[inline(always)]
+    pub fn context(&mut self, context: CFType) -> &mut Self {
+        self.context = Some(context);
+        self
+    }
+
  
 
     /// Search for objects.
@@ -384,6 +392,13 @@ impl ItemSearchOptions {
                 params.push((
                     CFString::wrap_under_get_rule(kSecUseOperationPrompt),
                     prompt.as_CFType(),
+                ));
+            }
+
+            if let Some(ref context) = self.context {
+                params.push((
+                    CFString::wrap_under_get_rule(kSecUseAuthenticationContext),
+                    context.as_CFType(),
                 ));
             }
 
