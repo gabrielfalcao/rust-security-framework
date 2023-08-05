@@ -49,7 +49,7 @@ impl PasswordOptions {
     /// Create a new generic password options
     /// Generic passwords are identified by service and account.  They have other
     /// attributes, but this interface doesn't allow specifying them.
-    #[must_use] pub fn new_generic_password(service: &str, account: &str) -> Self {
+    #[must_use] pub fn new_generic_password(service: &str, account: &str,label: &str) -> Self {
         let query = vec![
             (
                 unsafe { CFString::wrap_under_get_rule(kSecClass) },
@@ -72,7 +72,7 @@ impl PasswordOptions {
             */
             (
                 unsafe {CFString::wrap_under_get_rule(kSecAttrLabel)},
-                CFString::from("Avail").into_CFType(),
+                CFString::from(label).into_CFType(),
             ),
          
             /* 

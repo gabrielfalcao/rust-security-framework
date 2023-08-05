@@ -26,9 +26,10 @@ fn insert_then_find_generic() {
         CFString::wrap_under_get_rule(kSecAttrService)
     });
     let mut names = vec![];
+    let label = "test-label";
     for _ in 0..4 {
         let name = generate_random_string();
-        set_generic_password(&name, &name, name.as_bytes()).unwrap();
+        set_generic_password(&name, &name, name.as_bytes(),label).unwrap();
         names.push(name);
     }
     let results = ItemSearchOptions::new()
@@ -54,7 +55,7 @@ fn insert_then_find_generic() {
     }
     assert_eq!(names.len(), found);
     for name in &names {
-        delete_generic_password(name, name).unwrap();
+        delete_generic_password(name, name,label).unwrap();
     }
 }
 
@@ -62,6 +63,7 @@ fn insert_then_find_generic() {
 #[serial]
 #[cfg(target_os = "macos")]
 fn insert_then_find_generic_legacy() {
+    let label = "test-label";
     let keychain = SecKeychain::default().unwrap();
     let service_key = format!("{}", unsafe {
         CFString::wrap_under_get_rule(kSecAttrService)
@@ -78,7 +80,7 @@ fn insert_then_find_generic_legacy() {
     let mut modern_names = vec![];
     for _ in 0..4 {
         let name = generate_random_string();
-        set_generic_password(&name, &name, name.as_bytes()).unwrap();
+        set_generic_password(&name, &name, name.as_bytes(),label).unwrap();
         modern_names.push(name);
     }
     // first check to see that the legacy passwords are found by the modern search
@@ -114,7 +116,7 @@ fn insert_then_find_generic_legacy() {
         item.delete();
     }
     for name in &modern_names {
-        delete_generic_password(name, name).unwrap();
+        delete_generic_password(name, name,label).unwrap();
     }
 }
 

@@ -22,15 +22,15 @@ use security_framework_sys::keychain_item::{
 
 /// Set a generic password for the given service and account.
 /// Creates or updates a keychain entry.
-pub fn set_generic_password(service: &str, account: &str, password: &[u8]) -> Result<()> {
-    let mut options = PasswordOptions::new_generic_password(service, account);
+pub fn set_generic_password(service: &str, account: &str, password: &[u8], label:&str ) -> Result<()> {
+    let mut options = PasswordOptions::new_generic_password(service, account, label);
     set_password_internal(&mut options, password)
 }
 
 /// Get the generic password for the given service and account.  If no matching
 /// keychain entry exists, fails with error code `errSecItemNotFound`.
-pub fn get_generic_password(service: &str, account: &str, biometry : bool, context: Option<CFTypeRef>) -> Result<Vec<u8>> {
-    let mut options = PasswordOptions::new_generic_password(service, account);
+pub fn get_generic_password(service: &str, account: &str, biometry : bool, context: Option<CFTypeRef>,label:&str) -> Result<Vec<u8>> {
+    let mut options = PasswordOptions::new_generic_password(service, account,label);
     options.query.push((
         unsafe { CFString::wrap_under_get_rule(kSecReturnData) },
         CFBoolean::from(true).into_CFType(),
@@ -66,8 +66,8 @@ pub fn get_generic_password(service: &str, account: &str, biometry : bool, conte
 
 /// Delete the generic password keychain entry for the given service and account.
 /// If none exists, fails with error code `errSecItemNotFound`.
-pub fn delete_generic_password(service: &str, account: &str) -> Result<()> {
-    let options = PasswordOptions::new_generic_password(service, account);
+pub fn delete_generic_password(service: &str, account: &str, label:&str) -> Result<()> {
+    let options = PasswordOptions::new_generic_password(service, account,label);
     let params = CFDictionary::from_CFType_pairs(&options.query);
     cvt(unsafe { SecItemDelete(params.as_concrete_TypeRef()) })
 }
