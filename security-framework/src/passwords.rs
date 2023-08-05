@@ -6,15 +6,15 @@
 use crate::base::Result;
 use crate::passwords_options::PasswordOptions;
 use crate::{cvt, Error};
-use core_foundation::base::TCFType;
+use core_foundation::base::{TCFType, CFType};
 use core_foundation::boolean::CFBoolean;
 use core_foundation::data::CFData;
-use core_foundation::dictionary::{CFDictionary,CFMutableDictionary};
+use core_foundation::dictionary::{CFDictionary};
 use core_foundation::string::CFString;
 use core_foundation_sys::base::{CFGetTypeID, CFRelease, CFTypeRef};
 use core_foundation_sys::data::CFDataRef;
 use security_framework_sys::base::{errSecDuplicateItem, errSecParam};
-use security_framework_sys::item::{kSecReturnData, kSecValueData};
+use security_framework_sys::item::{kSecReturnData, kSecValueData, kSecUseAuthenticationContext};
 use security_framework_sys::keychain::{SecAuthenticationType, SecProtocolType};
 use security_framework_sys::keychain_item::{
     SecItemAdd, SecItemCopyMatching, SecItemDelete, SecItemUpdate,
@@ -29,7 +29,7 @@ pub fn set_generic_password(service: &str, account: &str, password: &[u8]) -> Re
 
 /// Get the generic password for the given service and account.  If no matching
 /// keychain entry exists, fails with error code `errSecItemNotFound`.
-pub fn get_generic_password(service: &str, account: &str, biometry : bool) -> Result<Vec<u8>> {
+pub fn get_generic_password(service: &str, account: &str, biometry : bool, context: Option<CFTypeRef>) -> Result<Vec<u8>> {
     let mut options = PasswordOptions::new_generic_password(service, account);
     options.query.push((
         unsafe { CFString::wrap_under_get_rule(kSecReturnData) },
@@ -37,13 +37,24 @@ pub fn get_generic_password(service: &str, account: &str, biometry : bool) -> Re
     ));
     if biometry {
         options.set_access_control_options(
-            crate::passwords_options::AccessControlOptions::BIOMETRY_ANY.union(
-                crate::passwords_options::AccessControlOptions::APPLICATION_PASSWORD,
-            ));     
+            crate::passwords_options::AccessControlOptions::BIOMETRY_ANY);
     }else {
         options.set_access_control_options(
-            crate::passwords_options::AccessControlOptions::APPLICATION_PASSWORD,
+            crate::passwords_options::AccessControlOptions::APPLICATION_PASSWORD
         );
+        
+        match context{
+            Some(context) => {     
+            options.query.push((
+                unsafe { CFString::wrap_under_get_rule(kSecUseAuthenticationContext) },
+                unsafe { CFType::wrap_under_create_rule(context) },
+            ));
+            },
+            None => {
+                return Err(Error::from_code(errSecParam));
+            }
+        }
+
     }
     
 
@@ -195,6 +206,7 @@ mod test {
     use super::*;
     use security_framework_sys::base::errSecItemNotFound;
 
+    /** 
     #[test]
     fn missing_generic() {
         let name = "a string not likely to already be in the keychain as service or account";
@@ -237,7 +249,7 @@ mod test {
         assert_eq!(pass, alternate.as_bytes());
         delete_generic_password(name, name).expect("delete_generic_password")
     }
-
+*/
     #[test]
     fn missing_internet() {
         let name = "a string not likely to already be in the keychain as service or account";

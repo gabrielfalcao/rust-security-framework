@@ -2,7 +2,7 @@
 
 use core_foundation::{string::CFString, base::{CFType, TCFType, CFOptionFlags}, number::CFNumber, boolean::CFBoolean};
 use core_foundation_sys::base::CFTypeRef;
-use security_framework_sys::{keychain::{SecProtocolType, SecAuthenticationType}, access_control::*, item::{kSecAttrLabel}};
+use security_framework_sys::{keychain::{SecProtocolType, SecAuthenticationType}, access_control::*, item::{kSecAttrLabel, kSecReturnAttributes, kSecReturnRef}};
 use security_framework_sys::item::{
     kSecAttrAccessControl, kSecAttrAccount, kSecAttrAuthenticationType, kSecAttrPath, kSecAttrPort, kSecAttrProtocol,
     kSecAttrSecurityDomain, kSecAttrServer, kSecAttrService, kSecClass, kSecClassGenericPassword,
@@ -86,6 +86,7 @@ impl PasswordOptions {
         Self { query }
     }
 
+  
     /// Create a new internet password options
     /// Internet passwords are identified by a number of attributes.
     /// They can have others, but this interface doesn't allow specifying them.
