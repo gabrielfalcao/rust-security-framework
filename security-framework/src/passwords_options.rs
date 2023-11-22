@@ -2,7 +2,7 @@
 
 use core_foundation::{string::CFString, base::{CFType, TCFType, CFOptionFlags}, number::CFNumber, boolean::CFBoolean};
 use core_foundation_sys::base::CFTypeRef;
-use security_framework_sys::{keychain::{SecProtocolType, SecAuthenticationType}, access_control::*, item::{kSecAttrLabel, kSecReturnAttributes, kSecReturnRef}};
+use security_framework_sys::{keychain::{SecProtocolType, SecAuthenticationType}, access_control::*, item::{kSecAttrLabel, kSecReturnAttributes, kSecReturnRef, kSecAttrAccessGroup}};
 use security_framework_sys::item::{
     kSecAttrAccessControl, kSecAttrAccount, kSecAttrAuthenticationType, kSecAttrPath, kSecAttrPort, kSecAttrProtocol,
     kSecAttrSecurityDomain, kSecAttrServer, kSecAttrService, kSecClass, kSecClassGenericPassword,
@@ -64,23 +64,20 @@ impl PasswordOptions {
                 unsafe { CFString::wrap_under_get_rule(kSecAttrAccount) },
                 CFString::from(account).into_CFType(),
             ),
-            /* 
+             
             (
                 unsafe { CFString::wrap_under_get_rule(kSecUseDataProtectionKeychain) },
                 CFBoolean::true_value().into_CFType(),
             ),
-            */
+            
             (
                 unsafe {CFString::wrap_under_get_rule(kSecAttrLabel)},
                 CFString::from(label).into_CFType(),
             ),
-         
-            /* 
             (
                 unsafe {CFString::wrap_under_get_rule(kSecAttrAccessGroup)},
-                CFString::from("Zack Xuereb (Personal Team)").into_CFType(),   
+                CFString::from("WTK34UZPZK.com.tauri.avail_wallet").into_CFType(),   
             )
-         */
 
         ];
         Self { query }
