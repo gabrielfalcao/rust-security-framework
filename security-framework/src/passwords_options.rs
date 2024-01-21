@@ -74,11 +74,6 @@ impl PasswordOptions {
                 unsafe {CFString::wrap_under_get_rule(kSecAttrLabel)},
                 CFString::from(label).into_CFType(),
             ),
-            (
-                unsafe {CFString::wrap_under_get_rule(kSecAttrAccessGroup)},
-                CFString::from("WTK34UZPZK.com.tauri.avail_wallet").into_CFType(),   
-            )
-
         ];
         Self { query }
     }
