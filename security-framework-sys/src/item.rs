@@ -14,7 +14,7 @@ extern "C" {
     pub static kSecMatchTrustedOnly: CFStringRef;
     pub static kSecMatchCaseInsensitive: CFStringRef;
     #[cfg(target_os = "macos")]
-    pub static kSecMatchSubjectWholeString: CFStringRef; 
+    pub static kSecMatchSubjectWholeString: CFStringRef;
 
     pub static kSecReturnData: CFStringRef;
     pub static kSecReturnAttributes: CFStringRef;
@@ -81,4 +81,11 @@ extern "C" {
     pub static kSecAttrAccount: CFStringRef;
     pub static kSecValueData: CFStringRef;
     pub static kSecValueRef: CFStringRef;
+    pub static kSecAttrAccessibleWhenUnlockedThisDeviceOnly: CFStringRef;
+    pub static kSecUseAuthenticationContext: CFStringRef;
+    pub static kSecUseAuthenticationUI: CFStringRef;
+    pub static kSecUseAuthenticationUISkip: CFStringRef;
+    pub static kSecUseOperationPrompt: CFStringRef;
+    pub static kSecAttrAccessible: CFStringRef;
+
 }

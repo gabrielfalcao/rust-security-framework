@@ -12,7 +12,10 @@ use security_framework_sys::access_control::{
     kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
     kSecAttrAccessibleAfterFirstUnlock
 };
+use core_foundation_sys::base::TCFTypeRef;
+use security_framework_sys::access_control::{SecAccessControlGetTypeID, SecAccessControlCreateWithFlags};
 use security_framework_sys::base::{SecAccessControlRef, errSecParam};
+use security_framework_sys::item::kSecAttrAccessibleWhenUnlockedThisDeviceOnly;
 use crate::base::{Error, Result};
 
 declare_TCFType! {
@@ -68,6 +71,7 @@ impl SecAccessControl {
             let access_control = SecAccessControlCreateWithFlags(
                 kCFAllocatorDefault,
                 protection_val.map(|v| v.as_CFTypeRef()).unwrap_or(null()),
+                kSecAttrAccessibleWhenUnlockedThisDeviceOnly.as_void_ptr(),
                 flags,
                 ptr::null_mut(),
             );

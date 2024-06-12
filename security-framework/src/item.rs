@@ -16,6 +16,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::ptr;
 
+use crate::access_control::SecAccessControl;
 use crate::base::Result;
 use crate::certificate::SecCertificate;
 use crate::cvt;
@@ -23,6 +24,7 @@ use crate::identity::SecIdentity;
 use crate::key::SecKey;
 #[cfg(target_os = "macos")]
 use crate::os::macos::keychain::SecKeychain;
+
 
 /// Specifies the type of items to search for.
 #[derive(Debug, Copy, Clone)]
@@ -146,6 +148,10 @@ pub struct ItemSearchOptions {
     access_group: Option<CFString>,
     pub_key_hash: Option<CFData>,
     app_label: Option<CFData>,
+    biometry: Option<SecAccessControl>,
+    prompt: Option<CFString>,
+    context: Option<CFType>,
+
 }
 
 #[cfg(target_os = "macos")]
@@ -241,7 +247,7 @@ impl ItemSearchOptions {
         self.service = Some(CFString::new(service));
         self
     }
-    
+
     /// Search for an item with exactly the given subject.
     #[inline(always)]
     pub fn subject(&mut self, subject: &str) -> &mut Self {
@@ -290,6 +296,30 @@ impl ItemSearchOptions {
         self.app_label = Some(CFData::from_buffer(app_label));
         self
     }
+
+    /// Add biometric access control to search
+    #[inline(always)]
+    pub fn biometry(&mut self, access_control: SecAccessControl) -> &mut Self {
+        self.biometry = Some(access_control);
+        self
+    }
+
+    /// Add prompt to biometric access control
+    /// Only available on macOS 10.15+
+    #[inline(always)]
+    pub fn prompt(&mut self, prompt: &str) -> &mut Self {
+        self.prompt = Some(CFString::new(prompt));
+        self
+    }
+
+    //add context to search
+    #[inline(always)]
+    pub fn context(&mut self, context: CFType) -> &mut Self {
+        self.context = Some(context);
+        self
+    }
+
+
 
     /// Search for objects.
     pub fn search(&self) -> Result<Vec<SearchResult>> {
@@ -366,7 +396,7 @@ impl ItemSearchOptions {
                     service.as_CFType(),
                 ));
             }
-            
+
             #[cfg(target_os = "macos")]
             {
                 if let Some(ref subject) = self.subject {
@@ -404,6 +434,29 @@ impl ItemSearchOptions {
                     app_label.as_CFType(),
                 ));
             }
+
+            if let Some(ref biometry) = self.biometry {
+                params.push((
+                    CFString::wrap_under_get_rule(kSecAttrAccessControl),
+                    biometry.as_CFType(),
+                ));
+            }
+
+            if let Some(ref prompt) = self.prompt {
+                params.push((
+                    CFString::wrap_under_get_rule(kSecUseOperationPrompt),
+                    prompt.as_CFType(),
+                ));
+            }
+
+            if let Some(ref context) = self.context {
+                params.push((
+                    CFString::wrap_under_get_rule(kSecUseAuthenticationContext),
+                    context.as_CFType(),
+                ));
+            }
+
+
 
             let params = CFDictionary::from_CFType_pairs(&params);
 
@@ -556,7 +609,11 @@ impl SearchResult {
                             "{}",
                             CFString::wrap_under_create_rule(CFCopyDescription(*v))
                         ),
-                        _ => String::from("unknown"),
+
+                        _ => format!(
+                            "{}",
+                            CFString::wrap_under_create_rule(CFCopyDescription(*v))
+                        ),
                     };
                     retmap.insert(format!("{keycfstr}"), val);
                 }
@@ -589,6 +646,8 @@ pub struct ItemAddOptions {
     pub service: Option<CFString>,
     /// Optional keychain location.
     pub location: Option<Location>,
+    /// Optional Access Control
+    pub access_control: Option<SecAccessControl>,
 }
 
 impl ItemAddOptions {
@@ -631,6 +690,11 @@ impl ItemAddOptions {
     /// Specifies the `kSecAttrService` attribute.
     pub fn set_service(&mut self, service: impl AsRef<str>) -> &mut Self {
         self.service = Some(service.as_ref().into());
+        self
+    }
+     /// Specifies the `kSecAttrAccessControl` attribute.
+     pub fn set_access_control(&mut self, access_control: SecAccessControl) -> &mut Self {
+        self.access_control = Some(access_control);
         self
     }
     /// Populates a `CFDictionary` to be passed to
@@ -686,7 +750,17 @@ impl ItemAddOptions {
         if let Some(service) = &self.service {
             dict.add(&unsafe { kSecAttrService }.to_void(), &service.to_void());
         }
+        if let Some(access_control) = &self.access_control {
+            dict.add(
+                &unsafe { kSecAttrAccessControl }.to_void(),
+                &access_control.to_void(),
+            );
+        }
 
+        let label = self.label.as_deref().map(CFString::from);
+        if let Some(label) = &label {
+            dict.add(&unsafe { kSecAttrLabel }.to_void(), &label.to_void());
+        }
         dict.to_immutable()
     }
 }

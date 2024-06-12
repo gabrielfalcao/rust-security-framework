@@ -9,6 +9,8 @@
 //! XCode project (part of this crate) for how it gets
 //! linked and used for testing.
 
+use std::ptr::{null, null_mut};
+
 use security_framework::passwords::{
     delete_generic_password, delete_internet_password, get_generic_password, get_internet_password,
     set_generic_password, set_internet_password,
@@ -36,19 +38,20 @@ extern "C" fn test() {
 fn test_missing_generic_password() {
     println!("test_missing_generic_password: start");
     let name = "test_missing_generic_password";
-    let result = delete_generic_password(name, name);
+    let label = "test-label";
+    let result = delete_generic_password(name, name,label);
     match result {
         Ok(()) => (),
         Err(err) if err.code() == errSecItemNotFound => (),
         Err(err) => panic!("test_missing_generic_password: delete failed with status: {}", err.code()),
     };
-    let result = get_generic_password(name, name);
+    let result = get_generic_password(name, name,false,Some(null_mut()),label);
     match result {
         Ok(bytes) => panic!("test_missing_password: get returned {:?}", bytes),
         Err(err) if err.code() == errSecItemNotFound => (),
         Err(err) => panic!("test_missing_generic_password: get failed with status: {}", err.code()),
     };
-    let result = delete_generic_password(name, name);
+    let result = delete_generic_password(name, name, label);
     match result {
         Ok(()) => panic!("test_missing_generic_password: second delete found a password"),
         Err(err) if err.code() == errSecItemNotFound => (),
@@ -60,44 +63,48 @@ fn test_missing_generic_password() {
 fn test_round_trip_empty_generic_password() {
     println!("test_round_trip_empty_generic_password: start");
     let name = "test_empty_generic_password_input";
+    let label = "test-label";
     let in_pass = "".as_bytes();
-    set_generic_password(name, name, in_pass).unwrap();
-    let out_pass = get_generic_password(name, name).unwrap();
+    set_generic_password(name, name, in_pass,label).unwrap();
+    let out_pass = get_generic_password(name, name,false,Some(null_mut()),label).unwrap();
     assert_eq!(in_pass, out_pass);
-    delete_generic_password(name, name).unwrap();
+    delete_generic_password(name, name,label).unwrap();
     println!("test_round_trip_empty_generic_password: pass");
 }
 
 fn test_round_trip_ascii_generic_password() {
     println!("test_round_trip_ascii_generic_password: start");
     let name = "test_round_trip_ascii_generic_password";
+    let label = "test-label";
     let password = "test ascii password".as_bytes();
-    set_generic_password(name, name, password).unwrap();
-    let stored_password = get_generic_password(name, name).unwrap();
+    set_generic_password(name, name, password,label).unwrap();
+    let stored_password = get_generic_password(name, name,false,Some(null_mut()),label).unwrap();
     assert_eq!(stored_password, password);
-    delete_generic_password(name, name).unwrap();
+    delete_generic_password(name, name,label).unwrap();
     println!("test_round_trip_ascii_generic_password: pass");
 }
 
 fn test_round_trip_non_ascii_generic_password() {
     println!("test_round_trip_non_ascii_generic_password: start");
     let name = "test_round_trip_non_ascii_generic_password";
+    let label = "test-label";
     let password = "このきれいな花は桜です".as_bytes();
-    set_generic_password(name, name, password).unwrap();
-    let stored_password = get_generic_password(name, name).unwrap();
+    set_generic_password(name, name, password,label).unwrap();
+    let stored_password = get_generic_password(name, name,false,Some(null_mut()),label).unwrap();
     assert_eq!(stored_password, password);
-    delete_generic_password(name, name).unwrap();
+    delete_generic_password(name, name,label).unwrap();
     println!("test_round_trip_non_ascii_generic_password: pass");
 }
 
 fn test_round_trip_non_utf8_generic_password() {
     println!("test_round_trip_non_utf8_generic_password: start");
     let name = "test_round_trip_non_utf8_generic_password";
+    let label = "test-label";
     let password: [u8; 10] = [0, 121, 122, 123, 40, 50, 126, 127, 8, 9];
-    set_generic_password(name, name, &password).unwrap();
-    let stored_password = get_generic_password(name, name).unwrap();
+    set_generic_password(name, name, &password, label).unwrap();
+    let stored_password = get_generic_password(name, name,false,Some(null_mut()),label).unwrap();
     assert_eq!(stored_password, password);
-    delete_generic_password(name, name).unwrap();
+    delete_generic_password(name, name,label).unwrap();
     println!("test_round_trip_non_utf8_generic_password: pass");
 }
 
@@ -105,14 +112,15 @@ fn test_update_generic_password() {
     println!("test_update_generic_password: start");
     let name = "test_update_generic_password";
     let password = "test ascii password".as_bytes();
-    set_generic_password(name, name, password).unwrap();
-    let stored_password = get_generic_password(name, name).unwrap();
+    let label = "test-label";
+    set_generic_password(name, name, password,label).unwrap();
+    let stored_password = get_generic_password(name, name,false,Some(null_mut()),label).unwrap();
     assert_eq!(stored_password, password);
     let password = "このきれいな花は桜です".as_bytes();
-    set_generic_password(name, name, password).unwrap();
-    let stored_password = get_generic_password(name, name).unwrap();
+    set_generic_password(name, name, password,label).unwrap();
+    let stored_password = get_generic_password(name, name,false,Some(null_mut()),label).unwrap();
     assert_eq!(stored_password, password);
-    delete_generic_password(name, name).unwrap();
+    delete_generic_password(name, name,label).unwrap();
     println!("test_update_generic_password: pass");
 }
 
